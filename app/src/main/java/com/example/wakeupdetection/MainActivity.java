@@ -11,18 +11,25 @@ import android.os.Handler;
 import android.provider.Settings;
 import android.view.MotionEvent;
 import android.view.WindowManager;
+import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 public class MainActivity extends Activity {
 
+    private TextView text;
+    private Handler handler = new Handler();
+
     private final BroadcastReceiver screenFlagReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
             if (action != null && action.equals("ADD_WINDOW_FLAG_KEEP_SCREEN_ON")) {// add back window flags
-                new Handler().post(() -> getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON));
+                handler.post(() -> {
+                    getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                    handler.post(() -> text.setText("Tap to turn off screen"));
+                });
             }
         }
     };
@@ -32,6 +39,7 @@ public class MainActivity extends Activity {
 
         // Turn screen off by removing flag
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        handler.post(() -> text.setText("Turning screen off"));
 
     };
 
@@ -39,6 +47,7 @@ public class MainActivity extends Activity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main_layout);
+        text = findViewById(R.id.text);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         IntentFilter intentfilter = new IntentFilter();
@@ -95,6 +104,8 @@ public class MainActivity extends Activity {
             Intent serviceIntent = new Intent(this, TestService.class);
             serviceIntent.putExtra("inputExtra", "Foreground Service Example in Android");
             startForegroundService(serviceIntent);
+        } else {
+            sendBroadcast(new Intent("START_WAKE_UP_DETECTION"));
         }
     }
 

@@ -21,7 +21,6 @@ import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
-import static android.content.Intent.ACTION_SCREEN_OFF;
 import static android.content.Intent.ACTION_SCREEN_ON;
 import static java.lang.Math.abs;
 
@@ -39,12 +38,15 @@ public class TestService extends Service implements SensorEventListener {
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
             if (action != null) {
-                if (ACTION_SCREEN_ON.equals(action)) {
-                    if (sensorManager != null) {
-                        sensorManager.unregisterListener(TestService.this);
-                    }
-                } else if (action.equals(ACTION_SCREEN_OFF)) {
+                switch (action) {
+                    case ACTION_SCREEN_ON:
+                        if (sensorManager != null) {
+                            sensorManager.unregisterListener(TestService.this);
+                        }
+                        break;
+                    case "START_WAKE_UP_DETECTION":
                         startSensor();
+                        break;
                 }
             }
         }
@@ -55,8 +57,10 @@ public class TestService extends Service implements SensorEventListener {
         sensorManager = (SensorManager) getApplicationContext().getSystemService(Context.SENSOR_SERVICE);
 
         IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(ACTION_SCREEN_OFF);
         intentFilter.addAction(ACTION_SCREEN_ON);
+        intentFilter.addAction("START_WAKE_UP_DETECTION");
+        startSensor();
+
         registerReceiver(screenOnReceiver, intentFilter);
 
         TestApp.getInstance().wakeServiceActive = true;
@@ -81,7 +85,7 @@ public class TestService extends Service implements SensorEventListener {
 
     private void startSensor() {
         if (sensorManager != null) {
-            lPercent = 100;
+            lPercent = 50.0f;
             sensorManager.registerListener(TestService.this, sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_FASTEST);
         }
     }
@@ -97,9 +101,11 @@ public class TestService extends Service implements SensorEventListener {
 
     private boolean shouldTurnOnScreen(float sensorData) {
         if (sensorData >= 0.9) {
+            // Some calculations (simplified for this project)
             lPercent = ((100 / 2.1f) * (sensorData - 0.9f));
             lPercent = 50 - abs(lPercent / 2);
         }
+        Log.d("TestService", lPercent + "");
 
         return lPercent < 10;
     }
@@ -137,7 +143,6 @@ public class TestService extends Service implements SensorEventListener {
     public IBinder onBind(Intent intent) {
         return null;
     }
-
 
 
     @Override
