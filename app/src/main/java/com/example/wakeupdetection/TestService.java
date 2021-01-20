@@ -5,10 +5,8 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -21,7 +19,6 @@ import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
-import static android.content.Intent.ACTION_SCREEN_ON;
 import static java.lang.Math.abs;
 
 public class TestService extends Service implements SensorEventListener {
@@ -33,35 +30,11 @@ public class TestService extends Service implements SensorEventListener {
     private SensorManager sensorManager;
     private Notification notification;
 
-    private final BroadcastReceiver screenOnReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            if (action != null) {
-                switch (action) {
-                    case ACTION_SCREEN_ON:
-                        if (sensorManager != null) {
-                            sensorManager.unregisterListener(TestService.this);
-                        }
-                        break;
-                    case "START_WAKE_UP_DETECTION":
-                        startSensor();
-                        break;
-                }
-            }
-        }
-    };
-
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         sensorManager = (SensorManager) getApplicationContext().getSystemService(Context.SENSOR_SERVICE);
 
-        IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(ACTION_SCREEN_ON);
-        intentFilter.addAction("START_WAKE_UP_DETECTION");
-        startSensor();
-
-        registerReceiver(screenOnReceiver, intentFilter);
+        sensorManager.registerListener(TestService.this, sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_FASTEST);
 
         TestApp.getInstance().wakeServiceActive = true;
 
@@ -83,13 +56,6 @@ public class TestService extends Service implements SensorEventListener {
         return super.onStartCommand(intent, flags, startId);
     }
 
-    private void startSensor() {
-        if (sensorManager != null) {
-            lPercent = 50.0f;
-            sensorManager.registerListener(TestService.this, sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_FASTEST);
-        }
-    }
-
     @Override
     public void onSensorChanged(SensorEvent event) {
         if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
@@ -105,7 +71,6 @@ public class TestService extends Service implements SensorEventListener {
             lPercent = ((100 / 2.1f) * (sensorData - 0.9f));
             lPercent = 50 - abs(lPercent / 2);
         }
-        Log.d("TestService", lPercent + "");
 
         return lPercent < 10;
     }
@@ -153,7 +118,6 @@ public class TestService extends Service implements SensorEventListener {
             sensorManager.unregisterListener(TestService.this);
         }
         TestApp.getInstance().wakeServiceActive = false;
-        unregisterReceiver(screenOnReceiver);
     }
 }
 

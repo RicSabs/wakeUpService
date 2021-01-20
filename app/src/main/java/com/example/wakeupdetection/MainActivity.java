@@ -19,7 +19,8 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 public class MainActivity extends Activity {
 
     private TextView text;
-    private Handler handler = new Handler();
+    private final Handler handler = new Handler();
+    private Intent serviceIntent;
 
     private final BroadcastReceiver screenFlagReceiver = new BroadcastReceiver() {
         @Override
@@ -48,14 +49,17 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main_layout);
         text = findViewById(R.id.text);
+
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         IntentFilter intentfilter = new IntentFilter();
         intentfilter.addAction("ADD_WINDOW_FLAG_KEEP_SCREEN_ON");
         LocalBroadcastManager.getInstance(TestApp.getInstance()).registerReceiver(screenFlagReceiver, intentfilter);
 
+        serviceIntent = new Intent(this, TestService.class);
+        serviceIntent.putExtra("inputExtra", "Foreground Service Example in Android");
 
-        if( checkSystemWritePermission()) {
+        if(checkSystemWritePermission()) {
             Settings.System.putInt(TestApp.getInstance().getContentResolver(), Settings.System.SCREEN_OFF_TIMEOUT, 1000);
         } else {
             openAndroidPermissionsMenu();
@@ -101,11 +105,7 @@ public class MainActivity extends Activity {
      */
     public void startWakeUpDetection() {
         if (!TestApp.getInstance().wakeServiceActive) {
-            Intent serviceIntent = new Intent(this, TestService.class);
-            serviceIntent.putExtra("inputExtra", "Foreground Service Example in Android");
             startForegroundService(serviceIntent);
-        } else {
-            sendBroadcast(new Intent("START_WAKE_UP_DETECTION"));
         }
     }
 
@@ -121,5 +121,6 @@ public class MainActivity extends Activity {
     protected void onDestroy() {
         super.onDestroy();
         LocalBroadcastManager.getInstance(TestApp.getInstance()).unregisterReceiver(screenFlagReceiver);
+        stopService(serviceIntent);
     }
 }
