@@ -9,6 +9,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.provider.Settings;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.WindowManager;
 import android.widget.TextView;
@@ -41,6 +42,8 @@ public class MainActivity extends Activity {
         // Turn screen off by removing flag
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         handler.post(() -> text.setText("Turning screen off"));
+
+        Log.d("WakeUpDetection", "Tapped to turn screen off");
 
     };
 

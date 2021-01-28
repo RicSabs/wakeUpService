@@ -19,6 +19,8 @@ import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import java.util.Arrays;
+
 import static java.lang.Math.abs;
 
 public class TestService extends Service implements SensorEventListener {
@@ -59,6 +61,7 @@ public class TestService extends Service implements SensorEventListener {
     @Override
     public void onSensorChanged(SensorEvent event) {
         if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+            Log.d("WakeUpDetection", "received data: " + Arrays.toString(event.values.clone()));
             if (shouldTurnOnScreen(event.values.clone()[0])) {
                 turnOnScreen();
             }
