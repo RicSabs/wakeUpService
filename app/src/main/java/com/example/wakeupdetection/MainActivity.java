@@ -1,5 +1,6 @@
 package com.example.wakeupdetection;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -7,6 +8,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.provider.Settings;
 import android.util.Log;
@@ -14,10 +16,19 @@ import android.view.MotionEvent;
 import android.view.WindowManager;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.app.ActivityCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import java.io.IOException;
+
+import static android.content.pm.PackageManager.PERMISSION_GRANTED;
+
 public class MainActivity extends Activity {
+
+    private final int WRITE_SETTINGS_REQUEST_CODE = 1111;
+    private final int WRITE_STORAGE_REQUEST_CODE = 2134;
 
     private TextView text;
     private final Handler handler = new Handler();
@@ -67,6 +78,31 @@ public class MainActivity extends Activity {
         } else {
             openAndroidPermissionsMenu();
         }
+        if (checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PERMISSION_GRANTED) {
+            logInFile();
+        } else {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                    WRITE_STORAGE_REQUEST_CODE);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == WRITE_STORAGE_REQUEST_CODE && grantResults[0] == PERMISSION_GRANTED) {
+            logInFile();
+        }
+    }
+
+    private void logInFile(){
+        String filePath = Environment.getExternalStorageDirectory() + "/logcat.txt";
+
+        try {
+            Runtime.getRuntime().exec(new String[]{"logcat", "-f", filePath});
+        } catch ( IOException e ) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -90,13 +126,13 @@ public class MainActivity extends Activity {
     private void openAndroidPermissionsMenu() {
         Intent intent = new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS);
         intent.setData(Uri.parse("package:" + getPackageName()));
-        startActivityForResult(intent, 1111);
+        startActivityForResult(intent, WRITE_SETTINGS_REQUEST_CODE);
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if(requestCode == 1111) {
+        if(requestCode == WRITE_SETTINGS_REQUEST_CODE) {
             if (checkSystemWritePermission()) {
                 Settings.System.putInt(TestApp.getInstance().getContentResolver(), Settings.System.SCREEN_OFF_TIMEOUT, 1000);
             }
