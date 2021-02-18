@@ -5,6 +5,7 @@ import android.app.Application;
 public class TestApp extends Application {
     private static TestApp testApp;
     public boolean wakeServiceActive = false;
+    public boolean isTappedToTurnScreenOff = false;
 
     @Override
     public void onCreate() {

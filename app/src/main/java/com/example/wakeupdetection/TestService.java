@@ -1,12 +1,10 @@
 package com.example.wakeupdetection;
 
-import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -16,45 +14,64 @@ import android.os.PowerManager;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
-import androidx.core.app.NotificationCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import java.util.Arrays;
 
+import static android.content.Intent.ACTION_SCREEN_OFF;
+import static android.content.Intent.ACTION_SCREEN_ON;
 import static java.lang.Math.abs;
 
 public class TestService extends Service implements SensorEventListener {
 
-    private float lPercent = 50.0f;
-    private static final String CHANNEL_ID = "ForegroundServiceChannel";
-    private static final int NOTIFICATION_ID = 12345;
-
     private SensorManager sensorManager;
-    private Notification notification;
+
+    private PowerManager pm;
+    private PowerManager.WakeLock partialWakeLock;
+
+    private final BroadcastReceiver screenOnReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (action != null) {
+                if (ACTION_SCREEN_ON.equals(action)) {
+                    if (partialWakeLock != null && partialWakeLock.isHeld()) {
+                        partialWakeLock.release();
+                    }
+
+                    if (sensorManager != null) {
+                        sensorManager.unregisterListener(TestService.this);
+                    }
+                } else if(action.equals(ACTION_SCREEN_OFF)){
+                    if (TestApp.getInstance().isTappedToTurnScreenOff) {
+                        if (partialWakeLock != null && !partialWakeLock.isHeld()) {
+                            partialWakeLock.acquire();
+                        }
+
+                        if (sensorManager != null) {
+                            sensorManager.registerListener(TestService.this,
+                                    sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_FASTEST);
+                        }
+                    }
+                }
+            }
+        }
+    };
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         sensorManager = (SensorManager) getApplicationContext().getSystemService(Context.SENSOR_SERVICE);
 
-        sensorManager.registerListener(TestService.this, sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_FASTEST);
-
+        //sensorManager.registerListener(TestService.this, sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_FASTEST);
+        pm = (PowerManager) TestApp.getInstance().getSystemService(Context.POWER_SERVICE);
+        partialWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "TestService:");
         TestApp.getInstance().wakeServiceActive = true;
 
-        Intent notificationIntent = new Intent(this, TestService.class);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this,
-                0, notificationIntent, 0);
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(ACTION_SCREEN_OFF);
+        intentFilter.addAction(ACTION_SCREEN_ON);
+        registerReceiver(screenOnReceiver, intentFilter);
 
-        createNotificationChannel();
-
-        notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("Foreground Service")
-                .setContentText("text")
-                .setSmallIcon(R.drawable.empty_dot)
-                .setContentIntent(pendingIntent)
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .build();
-        startForeground(NOTIFICATION_ID, notification);
-        //return START_STICKY;
         return super.onStartCommand(intent, flags, startId);
     }
 
@@ -69,6 +86,7 @@ public class TestService extends Service implements SensorEventListener {
     }
 
     private boolean shouldTurnOnScreen(float sensorData) {
+        float lPercent = 50.0f;
         if (sensorData >= 0.9) {
             // Some calculations (simplified for this project)
             lPercent = ((100 / 2.1f) * (sensorData - 0.9f));
@@ -78,25 +96,14 @@ public class TestService extends Service implements SensorEventListener {
         return lPercent < 10;
     }
 
-    private void createNotificationChannel() {
-        NotificationChannel serviceChannel = new NotificationChannel(
-                CHANNEL_ID,
-                "Foreground Service Channel",
-                NotificationManager.IMPORTANCE_HIGH);
-        NotificationManager manager = getSystemService(NotificationManager.class);
-        manager.createNotificationChannel(serviceChannel);
-    }
-
     private void turnOnScreen() {
-        PowerManager.WakeLock wl;
-        PowerManager pm = (PowerManager) TestApp.getInstance().getSystemService(Context.POWER_SERVICE);
         if (pm != null) {
-            wl = pm.newWakeLock(PowerManager.FULL_WAKE_LOCK
+            PowerManager.WakeLock wl = pm.newWakeLock(PowerManager.FULL_WAKE_LOCK
                     | PowerManager.ACQUIRE_CAUSES_WAKEUP
                     | PowerManager.ON_AFTER_RELEASE, "TestService:");
             wl.acquire();
+            TestApp.getInstance().isTappedToTurnScreenOff = false;
             LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent("ADD_WINDOW_FLAG_KEEP_SCREEN_ON"));
-
             wl.release();
         }
     }
@@ -112,14 +119,17 @@ public class TestService extends Service implements SensorEventListener {
         return null;
     }
 
-
     @Override
     public void onDestroy() {
         super.onDestroy();
         Log.d("Service", "onDestroy");
-        if (sensorManager != null) {
-            sensorManager.unregisterListener(TestService.this);
+
+        if (partialWakeLock != null && partialWakeLock.isHeld()) {
+            partialWakeLock.release();
         }
+
+        unregisterReceiver(screenOnReceiver);
+
         TestApp.getInstance().wakeServiceActive = false;
     }
 }

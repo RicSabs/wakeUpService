@@ -53,6 +53,7 @@ public class MainActivity extends Activity {
         // Turn screen off by removing flag
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         handler.post(() -> text.setText("Turning screen off"));
+        TestApp.getInstance().isTappedToTurnScreenOff = true;
 
         Log.d("WakeUpDetection", "Tapped to turn screen off");
 
@@ -108,13 +109,8 @@ public class MainActivity extends Activity {
     @Override
     protected void onStart() {
         super.onStart();
+        Log.d("MainActivity", "onStart");
         SwipeGestureDetector.getInstance().configure(swipeListener);
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-        SwipeGestureDetector.getInstance().configure(null);
     }
 
     private boolean checkSystemWritePermission() {
@@ -144,7 +140,7 @@ public class MainActivity extends Activity {
      */
     public void startWakeUpDetection() {
         if (!TestApp.getInstance().wakeServiceActive) {
-            startForegroundService(serviceIntent);
+            startService(serviceIntent);
         }
     }
 
@@ -157,8 +153,22 @@ public class MainActivity extends Activity {
     }
 
     @Override
+    protected void onPause() {
+        super.onPause();
+        Log.d("MainActivity", "onPause");
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        Log.d("MainActivity", "onStop");
+        SwipeGestureDetector.getInstance().configure(null);
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
+        Log.d("MainActivity", "onDestroy");
         LocalBroadcastManager.getInstance(TestApp.getInstance()).unregisterReceiver(screenFlagReceiver);
         stopService(serviceIntent);
     }
