@@ -11,6 +11,6 @@
         android:layout_height="wrap_content"
         android:textColor="@color/white"
         android:gravity="center"
-        android:textSize="50dp"
-        android:text="Tap to turn off screen"/>
+        android:textSize="45sp"
+        android:text="@string/tap_to_turn_screen_off"/>
 </RelativeLayout>

@@ -4,8 +4,12 @@ import android.app.Application;
 
 public class TestApp extends Application {
     private static TestApp testApp;
-    public boolean wakeServiceActive = false;
-    public boolean isTappedToTurnScreenOff = false;
+    private boolean wakeServiceActive = false;
+    private boolean isTappedToTurnScreenOff = false;
+
+    public static TestApp getInstance() {
+        return testApp;
+    }
 
     @Override
     public void onCreate() {
@@ -13,7 +17,19 @@ public class TestApp extends Application {
         testApp = this;
     }
 
-    public static TestApp getInstance() {
-        return testApp;
+    public boolean isWakeServiceActive() {
+        return wakeServiceActive;
+    }
+
+    public void setWakeServiceActive(boolean wakeServiceActive) {
+        this.wakeServiceActive = wakeServiceActive;
+    }
+
+    public boolean isTappedToTurnScreenOff() {
+        return isTappedToTurnScreenOff;
+    }
+
+    public void setTappedToTurnScreenOff(boolean tappedToTurnScreenOff) {
+        isTappedToTurnScreenOff = tappedToTurnScreenOff;
     }
 }

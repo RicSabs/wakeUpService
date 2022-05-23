@@ -10,7 +10,7 @@ import android.view.MotionEvent;
 public class SwipeGestureDetector implements GestureDetector.OnGestureListener {
 
     private static SwipeGestureDetector swipeGestureDetector;
-    private GestureDetector gestureDetector;
+    private final GestureDetector gestureDetector;
     private SwipeListener swipeListener;
 
     public SwipeGestureDetector(Context context) {
@@ -31,7 +31,7 @@ public class SwipeGestureDetector implements GestureDetector.OnGestureListener {
 
     @Override
     public void onShowPress(MotionEvent e) {
-
+        // not interesting in this use case
     }
 
     @Override
@@ -49,7 +49,7 @@ public class SwipeGestureDetector implements GestureDetector.OnGestureListener {
 
     @Override
     public void onLongPress(MotionEvent e) {
-
+        // not interesting in this use case
     }
 
 

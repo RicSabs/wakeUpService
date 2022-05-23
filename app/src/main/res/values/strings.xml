@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">wakeUpDetection</string>
+    <string name="tap_to_turn_screen_off">Tap to turn the screen off.</string>
+    <string name="screen_is_turning_off">The screen is turning off…</string>
 </resources>
